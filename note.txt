@@ -1,0 +1,142 @@
+first we added the core which is entity
+
+for example:
+    ./src/entities/product.ts
+
+    class Product {
+        constructor(
+            public readonly name : string,
+            public readonly price : number,
+            public readonly stock : number,
+            and so on as much as we want
+        ) {}
+    }
+
+next we need to implement these usecase it nothing but the function that we create to handle our business logic;
+
+create dir interfaces
+
+./src/interfaces/IProductIntereatcor.ts
+
+    interface IProductIntereatcor {
+        createProduct(input : any)
+        updateStock(id: number, stock : number)
+        getProducts(limit: number, offset : number)
+    }
+
+now we are going to implement the IProductIntereatcor here
+
+./src/interactors/ProducInteractor.ts
+
+    class ProducInteractor implements IProductIntereatcor {
+
+        private repository : IProductRepository;
+        constructor (repository : IProductRepository) {
+            this.repository = repository
+        }
+
+        async createProduct(input: any) {
+            return this.repository.create(input)
+        }
+        async updateStock(id : number, stock: number) {
+            return this.repository.update(id, stock)
+        }
+        async getProducts(limit : number, offset : number) {
+            return this.repository.find(limit, offset)
+        }
+    }
+
+
+
+./src/interfaces/IProductRepository.ts
+
+    interface IProductRepository {
+        private client: Pool
+        create(data: Product) : Promise<Product>;
+        update(id: number, stock : number) : Promise<Product>;
+        find(limit: number, offset) : Promise<Product[]>;
+    }
+
+./src/repositories/ProductRepository.ts
+
+    class ProductRepository implements IProductRepository {
+
+        private client: Pool
+
+        constructor() {
+            this.client = pgClient()
+        }
+
+        async create(data: Product) : Promise<Product> {
+            add the db query for creating data
+        }
+        async update(id: number, stock : number) : Promise<Product> {
+            add the db query for update data
+        }
+        async find(limit: number, offset) : Promise<Product[]> {
+            add db query for find data
+        }
+    }
+
+
+now the second layer is completed lets go to the third layer (controllers, gateways, or we can call it as presenters)
+so this layes will be a combination of the controller and routes
+
+./src/controller/ProductController.ts
+
+    class ProductController {
+        private interator : IProductIntereatcor;
+        constructor(interactor : IProductIntereatcor) {
+            this.interactor = interactor
+        }
+        async onCreateProduct(req:Request, res: Response, next : NextFunction) {
+            try {
+                const body = req.body
+                const data = await this.interactor.createProduct(body)
+                return res.status(200).json(data)
+            } catch (err) {
+                next(err)
+            }
+        }
+        async onGetProduct(req:Request, res: Response, next : NextFunction) {
+            try {
+                const offset = parseInt(req.query.offset)
+                const limit = parseInt(req.query.limit)
+                const data = await this.interactor.getProducts(limit, offset)
+                return res.status(200).json(data)
+            } catch(err) {
+                next(err)
+            }
+        }
+        async onUpdateStock(req:Request, res: Response, next : NextFunction) {
+            try {
+                const body = parseInt(req.params.id)
+                const stock = req.body.stock
+                const data = await this.interactor.updateStock(id, body)
+                return res.status(200).json(data)
+            } catch(err) {
+                next(err)
+            }
+        }
+    }
+
+./src.route/productRoute.ts
+
+    const repository = new ProductRepository()
+
+    const interactor = new ProducInteractor(repository)
+
+    const controller = new ProductController(interactor)
+
+    const router = express.Router()
+
+    router.post('/products', controller.onCreateProduct,bind(controller))
+    router.get('/products', controller.onGetProduct.bind(controller))
+    router.post('/products', controller.onUpdateStock.bind(constructor))
+
+    export default router
+
+    then add this router in the server.ts app.use('/', router)
+
+now the third layer implemented ie; presentation layer
+
